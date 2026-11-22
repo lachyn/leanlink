@@ -1,0 +1,12 @@
+# Firmware images (vendor stock OTAs and build output) are never committed.
+*.img
+*.sqfs
+*.zip
+/stock/*
+!/stock/README.md
+/build/
+
+# Python
+__pycache__/
+*.py[cod]
+leanlink-shell.log

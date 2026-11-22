@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeanLink firmware upload</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 560px; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.5; color: #1f2937; }
+    .card { border: 1px solid #d1d5db; border-radius: 12px; padding: 1.2rem; background: #f9fafb; margin-bottom: 1rem; }
+    h1 { font-size: 1.25rem; margin-top: 0; }
+    select, input[type="file"] { display: block; width: 100%; margin: 0.5rem 0 1rem; padding: 0.45rem; box-sizing: border-box; }
+    button, .btn { display: inline-block; background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 0.7rem 1.2rem; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .warn { background: #fffbeb; border-color: #f59e0b; font-size: 0.92rem; }
+    code { background: #e5e7eb; padding: 0.1rem 0.35rem; border-radius: 4px; word-break: break-all; }
+    table { border-collapse: collapse; font-size: 0.9rem; } td { padding: 0.15rem 0.6rem 0.15rem 0; }
+  </style>
+</head>
+<body>
+  <h1>LeanLink: upload firmware</h1>
+
+  <div class="card warn">
+    <strong>Before you start:</strong>
+    <ul style="margin:0.4rem 0 0; padding-left:1.2rem;">
+      <li>Open this file directly in Chrome, Edge, Firefox or Safari, not in a WhatsApp/Messenger preview (those block file uploads).</li>
+      <li>Join the box Wi-Fi <code>LeanLink-xxxx</code> (stock firmware: <code>CAR2-xxxx</code>) (password <code>88888888</code>, some units <code>12345678</code>). On a phone, first turn <strong>Bluetooth off</strong> (otherwise Android Auto / CarPlay keep the box Wi-Fi to themselves), then join the Wi-Fi and turn mobile data off.</li>
+      <li>Check the <strong>Build Number</strong> in the box web UI (<a href="http://192.168.1.101/" target="_blank">192.168.1.101</a>) and pick the matching image:
+        <table><tr><td><code>….6071.2</code></td><td><code>leanlink-6071-…-LL.img</code></td></tr>
+               <tr><td><code>….5140.2</code></td><td><code>leanlink-5140-…-LL.img</code></td></tr></table>
+        The images are <strong>not interchangeable</strong>.</li>
+      <li>Keep the box powered over USB the whole time.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <form id="upForm" action="http://192.168.1.101/cgi-bin/index.cgi?id=upload" method="POST" enctype="multipart/form-data" target="_blank">
+      <label for="ipSel"><strong>1. Which box network are you on?</strong></label>
+      <select id="ipSel" onchange="updIp()">
+        <option value="192.168.1.101">LeanLink-xxxx / CAR2-xxxx (192.168.1.101)</option>
+        <option value="192.168.43.1">DIRECT-xx, stock firmware only (192.168.43.1)</option>
+      </select>
+
+      <label for="fw"><strong>2. Select the image for your model:</strong></label>
+      <input type="file" id="fw" name="file" accept=".img,application/octet-stream" required>
+
+      <button type="submit">3. Upload (result opens in a new tab)</button>
+    </form>
+
+    <p style="margin:1rem 0 0; font-size:0.9rem;">
+      When the new tab shows <code>{"code": 0, "msg": "upload successful"}</code>, wait about 90 seconds until
+      <a id="stsLink" href="http://192.168.1.101/cgi-bin/index.cgi?id=host" target="_blank">the status</a> shows
+      <code>"update": 3</code>. A box that already runs LeanLink restarts by itself; on stock firmware press:<br><br>
+      <a id="chBtn" class="btn" style="background:#059669; padding:0.5rem 0.9rem; font-size:0.9rem;" href="http://192.168.1.101/cgi-bin/index.cgi?id=set&wifi=36" target="_blank">4a. Set 5 GHz channel 36</a>
+      <a id="rbBtn" class="btn" style="background:#059669; padding:0.5rem 0.9rem; font-size:0.9rem;" href="http://192.168.1.101/cgi-bin/index.cgi?id=set&conn=aoa" target="_blank">4b. Reboot</a>
+    </p>
+    <p style="font-size:0.85rem; color:#4b5563;">Recommended after the first flash from stock: factory reset
+      (<a id="rstLink" href="http://192.168.1.101/cgi-bin/index.cgi?id=set&rst=1" target="_blank">id=set&amp;rst=1</a>), then pair the phone again.</p>
+  </div>
+
+  <script>
+    function updIp() {
+      var ip = document.getElementById('ipSel').value;
+      var base = 'http://' + ip + '/cgi-bin/index.cgi?id=';
+      document.getElementById('upForm').action = base + 'upload';
+      document.getElementById('stsLink').href = base + 'host';
+      document.getElementById('chBtn').href = base + 'set&wifi=36';
+      document.getElementById('rbBtn').href = base + 'set&conn=aoa';
+      document.getElementById('rstLink').href = base + 'set&rst=1';
+    }
+  </script>
+</body>
+</html>
