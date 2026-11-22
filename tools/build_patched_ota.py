@@ -67,7 +67,7 @@ PROFILES: dict[str, ModelProfile] = {
         crypto_flag="-k4",
         testcp_flag="-c=1",
         led_cfg="7-5",
-        patched_appver="26122219.6071.2.LL",
+        patched_appver="26122220.6071.2.LL",
         stock_relpath="stock/update_26101215.6071.2.img",
         out_relpath="build/update_aa_fixed.img",
     ),
@@ -78,7 +78,7 @@ PROFILES: dict[str, ModelProfile] = {
         crypto_flag="-k55",
         testcp_flag="-c=4",
         led_cfg="107-5",
-        patched_appver="26122219.5140.2.LL",
+        patched_appver="26122220.5140.2.LL",
         stock_relpath="stock/update_26101218.5140.2.img",
         out_relpath="build/update_5140_aa_fixed.img",
     ),
@@ -418,6 +418,9 @@ LL_CSS = """
 		.ll-help { font-size: .78rem; color: var(--ll-muted); line-height: 1.4; margin-top: 2px; padding-right: 8px; }
 		.ll-ok { color: var(--ll-ink); } .ll-bad { color: #b42318; }
 		.ll-link { display: inline-block; margin: 6px 12px 0 0; color: var(--ll-ink); font-size: .875rem; font-weight: 600; }
+		#ll_online .ll-link { display: inline; margin: 0; }
+		/* the vendor's WeUI breaks words anywhere (word-break: break-all); break only between words */
+		.weui-dialog__bd, .weui-label, .weui-msg__desc, .weui-msg__title, .weui-cell, .ll-help, .ll-note, .ll-info { word-break: normal; overflow-wrap: break-word; }
 		.ll-card .weui-progress { margin: 10px 0 4px; }
 		.ll-card .weui-progress__bar { background-color: var(--ll-line); border-radius: 4px; overflow: hidden; height: 4px; }
 		.ll-card .weui-progress__inner-bar { background-color: var(--ll2); }

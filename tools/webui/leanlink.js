@@ -14,11 +14,18 @@ var LL_LANG = (function () {
 	var two = l.slice(0, 2);
 	return LL_TR[two] ? two : "en";
 })();
+/* Czech / Slovak / Polish typography: no line break after a one-letter preposition or conjunction, nor between
+   a number and its unit (non-breaking space, like the "vlna" filter). */
+function llVlna(r) {
+	if (!/^(cs|sk|pl)$/.test(LL_LANG)) return r;
+	return r.replace(/(^|[\s(„>])([ksvzouaiwKSVZOUAIW]) /g, "$1$2\u00a0")
+		.replace(/(\d) (?=(s|ms|min|h|GHz|MHz|MB|kB|Kč|%)(?![\w\u00c0-\u024f]))/g, "$1\u00a0");
+}
 function T(s, args) {
 	var d = LL_TR[LL_LANG] || {}, e = LL_TR.en || {};
 	var r = d[s] != null ? d[s] : (e[s] != null ? e[s] : s);
 	if (args) for (var i = 0; i < args.length; i++) r = r.split("{" + i + "}").join(args[i]);
-	return r;
+	return llVlna(r);
 }
 function llI18nPage() {
 	document.documentElement.lang = LL_LANG;
@@ -29,7 +36,7 @@ function llI18nPage() {
 	var d = LL_TR[LL_LANG] || {};
 	for (var i = 0; i < 22; i++) {
 		var e = document.getElementById("txt" + i), k = e ? e.textContent.replace(/:$/, "").trim() : "";
-		if (e && d[k]) e.textContent = d[k];
+		if (e && d[k]) e.textContent = llVlna(d[k]);
 	}
 	var t = document.getElementById("txt_desc"); if (t) t.placeholder = T("Please enter text here");
 }
