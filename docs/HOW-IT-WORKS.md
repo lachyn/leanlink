@@ -21,6 +21,7 @@
 | Two extras nobody here uses run all the time: a Bluetooth link for the vendor's phone app (Ottopilot) that scans every 5 s, and a second Wi-Fi network for Huawei HiCar | Pairing failures; the shared radio and the little memory are partly wasted | Both removed; the radio serves only your phone's connection |
 | After a factory reset the adapter starts in CarPlay mode | Android-only cars never see Android Auto | First start after install or reset is Android Auto; iPhones still switch it to CarPlay automatically |
 | Once an iPhone has used the adapter, it stays in CarPlay mode and ignores Android phones | An Android phone connected later never gets Android Auto, only a factory reset helps | When an Android phone asks for Android Auto and no iPhone is connected, the adapter switches to Android Auto by itself (it restarts once, ~20 s) |
+| Bluetooth starts at power-on, and the Android Auto service switches it on 25 s later even without a car | The phone connects before the car is ready (ignition off, adapter on a charger), the session ends after 10 s, the service crashes and the phone may keep an unnamed car (`UNKNOWN`) in its list | In Android Auto mode Bluetooth starts only when the car starts Android Auto; the phone connects a few seconds later |
 | Default Wi-Fi channel 149 (US / China band) | Weak or no link with some phones in Europe | Default channel 36 |
 
 ### Additions
@@ -68,11 +69,14 @@ programs stay byte-for-byte the vendor's.
 ```text
 init → /mnt/customer/app/lyLink.sh
          ├─ /mnt/UDISK/ly_linktype_aa present → Android Auto mode
-         │     ├─ lyLoadModule.sh &   Wi-Fi access point (lyhostapd) + DHCP (udhcpd), then blink.sh
+         │     ├─ lyLoadModule.sh &   Wi-Fi access point (lyhostapd) + DHCP (udhcpd)
+         │     ├─ gate loop &         starts blink.sh when the car starts Android Auto; USB watchdog
          │     └─ raaservice          Android Auto relay: Bluetooth hand-over, Wi-Fi, USB to the car
          └─ otherwise → CarPlay mode (mdnsd, rcpservice, lylinkapp)
 blink.sh → btapp (Bluetooth stack)
 ```
+
+In CarPlay mode `lyLoadModule.sh` starts `blink.sh` itself, as on stock.
 
 `raaservice` acts as a phone towards the car (USB, first as a media device `2717:ff40`, then as an Android
 accessory `18d1:2d00`) and as a head unit towards the phone (Bluetooth to hand over the Wi-Fi credentials, then
@@ -83,8 +87,8 @@ forwards the stream.
 
 | File in `customer` | Why |
 |---|---|
-| `app/lyLink.sh` | Android Auto default after a reset, USB watchdog, CarPlay → Android Auto switch, honour `force_raa` (`id=set&aa=2`) in CarPlay mode, free RAM in Android Auto mode, keep the mode across updates, restart after an update, `LeanLink-xxxx` name |
-| `app/lyLoadModule.sh` | DHCP config at the path `raaservice` reads, channel 36 default, no HiCar Wi-Fi Direct group |
+| `app/lyLink.sh` | Android Auto default after a reset, Bluetooth gate and USB watchdog, CarPlay → Android Auto switch, honour `force_raa` (`id=set&aa=2`) in CarPlay mode, free RAM in Android Auto mode, keep the mode across updates, restart after an update, `LeanLink-xxxx` name |
+| `app/lyLoadModule.sh` | DHCP config at the path `raaservice` reads, channel 36 default, no HiCar Wi-Fi Direct group, leaves Bluetooth to the gate in Android Auto mode |
 | `app/blink.sh` | Start only the Bluetooth stack (no extra BLE advertising) |
 | `app/otto_goc` | Replaced by a two-line stub (Ottopilot BLE daemon off) |
 | `app/system.json` | LeanLink version string (`….LL`), LED pin per model |
@@ -103,7 +107,7 @@ additions are in [`tools/webui/leanlink.js`](../tools/webui/leanlink.js).
    gadget; if it then crashes, the restarted instance never binds it again. Kernel log:
    `raaservice[219]: unhandled signal 11 ... in liblylinkmw.so.1`, with
    `/sys/kernel/config/usb_gadget/g1/UDC` left empty. LeanLink re-binds `44100000.udc-controller` when it stays
-   empty for about 9 s.
+   empty for about 9 s and a USB function is configured (without one the write only fails).
 3. **Pairing failures and wasted airtime.** `blink.sh` sends `AT#LR` and starts `otto_goc`, which advertises a
    second Bluetooth LE identity (for the Ottocast phone app and a BT04 remote) and scans for 15 s every 5 s;
    phones occasionally failed with `HCI_ERR_PAGE_TIMEOUT`. `lyLoadModule.sh` also runs a Huawei HiCar Wi-Fi
@@ -129,6 +133,15 @@ additions are in [`tools/webui/leanlink.js`](../tools/webui/leanlink.js).
    and waits for someone to restart the adapter; a phone that lost the adapter's Wi-Fi during the update cannot.
    LeanLink restarts by itself about 10 s after a write it saw during the same start (never because of a "done"
    state left over at boot).
+11. **Phone connected before the car is ready.** Stock starts `btapp` at power-on, and `raaservice` switches
+   Bluetooth on 25 s after start even when no car talks to it; it then re-offers USB every 22 s. A phone nearby
+   (ignition off, car in after-run, adapter on a charger) connects, gets no car, and closes the session after
+   10 s (`aabt.c:222 read err=-5`); freeing that session makes `raaservice` crash (use-after-free in
+   `liblylinkmw.so.1`). Testers saw an `UNKNOWN` car and duplicate entries in the phone's Android Auto list. In
+   Android Auto mode LeanLink starts `btapp` only when the kernel logs the car's Android accessory start request
+   (`ctrl:40.35`); `raaservice` re-opens Bluetooth every 2 s and the phone connects within 7 to 9 s. After the
+   session starts, the vendor logic switches Bluetooth off and on again only at the next accessory start, so a
+   car in after-run does not pull the phone back.
 
 ## What LeanLink does not change
 

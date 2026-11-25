@@ -67,7 +67,9 @@ The adapter's Wi-Fi has **no internet**. So first download everything you need, 
 7. **Check:** join `LeanLink-xxxx` again and open <http://192.168.1.101/>. *Build Number* ends with `.LL`.
 8. **First install from stock only:** tap *Restore factory settings* → *Forget phones*. It removes old
    Bluetooth pairings, which on stock firmware can make the Bluetooth chip restart again and again.
-9. **Done:** switch mobile data and Bluetooth back on and pair the phone with `LeanLink-xxxx`.
+9. **Done:** switch mobile data and Bluetooth back on. Plug the adapter into the car and start the car; once the
+   car starts Android Auto the adapter shows up as `LeanLink-xxxx` and you pair the phone with it (in Android
+   Auto mode its Bluetooth stays off until then, so pairing on a charger does not work).
 
 ## 3. Tools per device
 
@@ -156,7 +158,14 @@ Download the stock image of your model from the vendor (links in
 ## Recovery
 
 - **LED blinks and the car shows nothing:** the adapter is waiting for a phone. Switch Bluetooth on on the
-  paired phone, or pair one (Bluetooth name `LeanLink-xxxx`).
+  paired phone, or pair one (Bluetooth name `LeanLink-xxxx`). In Android Auto mode the adapter's Bluetooth
+  appears only once the car has started Android Auto (ignition on, adapter in the car's USB port), not on a
+  charger.
+- **Projection fails although the phone is on the adapter's Wi-Fi:** if you saved the adapter's Wi-Fi on the
+  phone (for the settings page), the phone may join that saved network instead of the one Android Auto creates.
+  Delete the saved network or switch its auto-reconnect off; join it only to open the settings page.
+- **`UNKNOWN` car or duplicate cars in the phone's Android Auto list:** left over from older firmware. Remove
+  them in Android Auto → *Previously connected cars* and connect again.
 - **A phone does not pair or reconnect:** *Restore factory settings* → *Forget phones*, then pair again.
 - **Adapter does not start (no Wi-Fi, nothing in the car):** an update writes only the kernel and the
   application; the bootloader and the recovery system stay intact, so an interrupted write can be repeated.

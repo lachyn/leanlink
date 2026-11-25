@@ -14,6 +14,7 @@ A fixed and slimmed-down firmware for cheap wireless Android Auto / CarPlay USB 
 - [Who it is for](#who-it-is-for)
 - [How to install](#how-to-install)
 - [Documentation](#documentation)
+- [Changelog](CHANGELOG.md)
 - [License and credits](#license-and-credits)
 
 ## What it is
@@ -30,6 +31,8 @@ On the stock firmware these adapters:
 
 - drop the phone every few seconds;
 - leave the car's USB port dead until you unplug the adapter;
+- let the phone connect before the car is ready (before the ignition, on a charger), which ends in a crash and
+  can leave an unnamed car in the phone's Android Auto list;
 - start in CarPlay after a reset or an update, so Android-only cars never see Android Auto;
 - stay in CarPlay once an iPhone has used them and ignore Android phones;
 - waste the radio on features nobody needs (a phone app link that scans all the time, Huawei HiCar);
@@ -64,7 +67,8 @@ the model.
    Wi-Fi (password `88888888`), stay connected although it has no internet, and switch mobile data off.
 4. Upload the image: from stock with `flasher.html` (or the scripts), from LeanLink on <http://192.168.1.101/>
    → *Firmware update*. Wait about 2 minutes and do not unplug.
-5. After the first install from stock: *Restore factory settings* → *Forget phones*, then pair your phone again.
+5. After the first install from stock: *Restore factory settings* → *Forget phones*, then pair your phone again
+   in the car (the adapter's Bluetooth appears once the car starts Android Auto).
 
 All steps, scripts for Windows, macOS and Linux, and how to go back to stock:
 [Installing LeanLink](docs/FLASHING.md).
@@ -75,6 +79,7 @@ All steps, scripts for Windows, macOS and Linux, and how to go back to stock:
 - [Settings](docs/SETTINGS.md): every option on the adapter's page, what it does and when to change it
 - [How it works](docs/HOW-IT-WORKS.md): what LeanLink fixes and adds, boot flow, the evidence for each bug
 - [Building](docs/BUILDING.md): build the image yourself, verify a release, repository layout, debugging
+- [Changelog](CHANGELOG.md): what changed in each release
 
 ## License and credits
 

@@ -67,7 +67,7 @@ PROFILES: dict[str, ModelProfile] = {
         crypto_flag="-k4",
         testcp_flag="-c=1",
         led_cfg="7-5",
-        patched_appver="26122220.6071.2.LL",
+        patched_appver="26122221.6071.2.LL",
         stock_relpath="stock/update_26101215.6071.2.img",
         out_relpath="build/update_aa_fixed.img",
     ),
@@ -78,7 +78,7 @@ PROFILES: dict[str, ModelProfile] = {
         crypto_flag="-k55",
         testcp_flag="-c=4",
         led_cfg="107-5",
-        patched_appver="26122220.5140.2.LL",
+        patched_appver="26122221.5140.2.LL",
         stock_relpath="stock/update_26101218.5140.2.img",
         out_relpath="build/update_5140_aa_fixed.img",
     ),
@@ -184,24 +184,42 @@ if [ -f /mnt/UDISK/ly_linktype_aa ]; then
 \tln -sf $WORKDIR/logo /tmp/raaui
 \tln -sf $WORKDIR/raa.crt /tmp/app/raa.crt
 \t$WORKDIR/lyUpdate.sh $WORKDIR &
+\t# Bluetooth gate: in Android Auto mode lyLoadModule.sh does not start btapp, the loop below does.
+\ttouch /tmp/ll_bt_gate
 \tcp $WORKDIR/lyLoadModule.sh /tmp/
 \t/tmp/lyLoadModule.sh $LY_BOOT_MODE &
 
-\t# USB UDC watchdog: recover automatically if SIGSYS leaves gadget unbound >=9s
+\t# Android Auto gate + USB watchdog (one loop, a single instance through the lock directory).
+\t# Gate: stock starts btapp at boot and raaservice switches Bluetooth on 25 s later even without a car. A phone
+\t# that connects while the car is not ready (before ignition, wall charger) opens a session that ends after
+\t# 10 s without data; raaservice then crashes and the phone may keep an unnamed car. So btapp starts only when
+\t# the car starts Android Auto (kernel log "ctrl:40.35" = AOAP start request); raaservice reopens the Bluetooth
+\t# link by itself every 2 s and the phone connects well inside the 20 s raaservice waits for it. After that the
+\t# vendor logic is enough: raaservice switches Bluetooth off when the phone's session starts and on again only
+\t# at the next AOAP, so a car in after-run does not pull the phone back. btapp is never stopped here (stopping
+\t# it after a projection restarted the adapter on the bench).
+\t# Watchdog: a raaservice that crashed while the gadget was unbound may leave it unbound; re-bind after
+\t# ~10 s, but only when a USB function is linked (without one the write only fails).
 \t(
+\t\tmkdir /tmp/ll_gate.lock 2>/dev/null || exit 0
+\t\tG=/sys/kernel/config/usb_gadget/g1
+\t\tbt=0
 \t\tdead=0
-\t\twhile sleep 3; do
-\t\t\tif [ -f /sys/kernel/config/usb_gadget/g1/UDC ]; then
-\t\t\t\tudc=$(cat /sys/kernel/config/usb_gadget/g1/UDC 2>/dev/null)
-\t\t\t\tif [ -z "$udc" ] || [ "$udc" = "none" ]; then
-\t\t\t\t\tdead=$((dead + 1))
-\t\t\t\t\tif [ "$dead" -ge 3 ]; then
-\t\t\t\t\t\techo "44100000.udc-controller" > /sys/kernel/config/usb_gadget/g1/UDC 2>/dev/null
-\t\t\t\t\t\tdead=0
-\t\t\t\t\tfi
-\t\t\t\telse
+\t\twhile sleep 2; do
+\t\t\tif [ "$bt" = 0 ] && dmesg | grep -q 'ctrl:40.35'; then
+\t\t\t\techo "lyLink: car started Android Auto, starting Bluetooth"
+\t\t\t\tblink.sh ${{LY_BOOT_MODE}} ${{LY_DEBUG_MODE}} &
+\t\t\t\tbt=1
+\t\t\tfi
+\t\t\tudc=$(cat $G/UDC 2>/dev/null)
+\t\t\tif [ -z "$udc" ] || [ "$udc" = "none" ]; then
+\t\t\t\tdead=$((dead + 1))
+\t\t\t\tif [ "$dead" -ge 5 ] && ls $G/configs/c.1 2>/dev/null | grep -q '\\.'; then
+\t\t\t\t\techo "44100000.udc-controller" > $G/UDC 2>/dev/null
 \t\t\t\t\tdead=0
 \t\t\t\tfi
+\t\t\telse
+\t\t\t\tdead=0
 \t\t\tfi
 \t\tdone
 \t) &
@@ -326,7 +344,8 @@ fi
 # Fix Bug B: raaservice (src/wpa.c) reads & rewrites /tmp/udhcpd.conf directly
 cp -rf /tmp/udhcpd_ap.conf /tmp/udhcpd.conf
 
-if [ ! -f /tmp/blink ]; then
+# Android Auto mode: btapp is started by the gate in lyLink.sh (/tmp/ll_bt_gate).
+if [ ! -f /tmp/blink ] && [ ! -f /tmp/ll_bt_gate ]; then
 \tblink.sh ${LY_BOOT_MODE} ${LY_DEBUG_MODE} &
 \ttouch /tmp/blink
 fi
